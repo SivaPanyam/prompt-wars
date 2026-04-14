@@ -1,0 +1,15 @@
+# Node / Next.js
+venueflow-frontend/node_modules/
+venueflow-frontend/.next/
+venueflow-frontend/out/
+venueflow-frontend/.env*.local
+
+# Python / Backend
+venueflow-backend/venv/
+venueflow-backend/__pycache__/
+venueflow-backend/*.pyc
+venueflow-backend/.env
+
+# OS / Editor
+.DS_Store
+.vscode/
