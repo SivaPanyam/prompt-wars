@@ -39,7 +39,8 @@ export default function AttendeeApp() {
   const t = TRANSLATIONS[lang];
 
   useEffect(() => {
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws";
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
     const ws = new WebSocket(wsUrl);
     ws.onmessage = (event) => {
       try {
@@ -60,7 +61,7 @@ export default function AttendeeApp() {
     setInput("");
 
     try {
-      const response = await fetch("http://localhost:8000/api/concierge", {
+      const response = await fetch("/api/concierge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: input, location: "Sec 142" })
@@ -134,8 +135,10 @@ export default function AttendeeApp() {
              <div className="flex gap-2">
                 {["EN", "ES", "JA"].map(l => (
                   <button 
+                    id={`lang-btn-${l}`}
                     key={l}
                     onClick={() => setLang(l)}
+                    aria-label={`Switch language to ${l}`}
                     className={cn(
                       "w-8 h-8 rounded-full text-[10px] font-black border transition-all",
                       lang === l ? "bg-cyan-500 border-cyan-400 text-black scale-110" : "bg-white/5 border-white/10 text-white/40"
@@ -146,20 +149,22 @@ export default function AttendeeApp() {
                 ))}
              </div>
              <button 
+               id="a11y-toggle"
                onClick={() => setHighContrast(!highContrast)}
+               aria-label="Toggle High Contrast Mode"
                className={cn(
                  "p-2 rounded-xl border transition-all",
                  highContrast ? "bg-white text-black" : "bg-white/5 text-white/40 border-white/10"
                )}
              >
-               <Eye size={18} />
+               <Eye size={18} aria-hidden="true" />
              </button>
           </div>
 
           <div className="mb-8 space-y-1">
             <p className="text-xs font-bold text-white/30 uppercase tracking-[0.2em]">November 12 • Sec 142</p>
-            <h1 className="text-4xl font-black tracking-tighter flex items-center gap-2 italic">
-              {t.welcome} <Sparkles size={24} className="text-cyan-400" />
+            <h1 id="app-welcome-header" className="text-4xl font-black tracking-tighter flex items-center gap-2 italic">
+              {t.welcome} <Sparkles size={24} className="text-cyan-400" aria-hidden="true" />
             </h1>
           </div>
 
@@ -195,17 +200,21 @@ export default function AttendeeApp() {
 
              <div className="relative">
                 <input 
+                  id="ai-concierge-input"
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyPress={e => e.key === 'Enter' && handleSend()}
                   placeholder={t.prompt}
+                  aria-label="Ask AI Concierge"
                   className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-cyan-500/50 transition-colors"
                 />
                 <button 
+                  id="ai-concierge-send"
                   onClick={handleSend}
+                  aria-label="Send message"
                   className="absolute right-2 top-2 p-2 bg-cyan-500 text-black rounded-xl hover:scale-105 transition-transform"
                 >
-                  <Send size={18} />
+                  <Send size={18} aria-hidden="true" />
                 </button>
              </div>
           </div>

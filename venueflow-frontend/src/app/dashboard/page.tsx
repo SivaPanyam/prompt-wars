@@ -34,7 +34,8 @@ export default function Dashboard() {
   const [sentimentHistory, setSentimentHistory] = useState<number[]>([]);
 
   useEffect(() => {
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws";
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
     const ws = new WebSocket(wsUrl);
     ws.onopen = () => setConnected(true);
     ws.onmessage = (event) => {
@@ -124,11 +125,13 @@ export default function Dashboard() {
              </div>
 
              <button 
+               id="mesh-resync-btn"
                onClick={handleResync}
                disabled={isResyncing}
+               aria-label="Manually resynchronize IoT camera mesh"
                className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all disabled:opacity-50"
              >
-               <RefreshCcw size={14} className={cn(isResyncing && "animate-spin")} />
+               <RefreshCcw size={14} className={cn(isResyncing && "animate-spin")} aria-hidden="true" />
                {isResyncing ? "Re-syncing..." : "Mesh Resync"}
              </button>
 
@@ -156,7 +159,8 @@ export default function Dashboard() {
               {/* Sentiment Pulse SVG Component */}
               <div className="flex items-center gap-4 bg-black/40 px-4 py-2 rounded-2xl border border-white/5">
                  <span className="text-[10px] font-black text-white/30 uppercase">Sentiment Trend</span>
-                 <svg width="100" height="24" className="overflow-visible">
+                 <svg id="sentiment-pulse-chart" width="100" height="24" className="overflow-visible" role="img" aria-label="Line chart showing real-time stadium sentiment trends">
+                    <title>Stadium Sentiment Pulse</title>
                     <polyline
                       fill="none"
                       stroke="#10b981"
@@ -199,7 +203,7 @@ export default function Dashboard() {
                            </div>
                            <h3 className="font-bold text-lg">{zone.name}</h3>
                         </div>
-                        <div className="text-3xl filter drop-shadow-lg">
+                        <div className="text-3xl filter drop-shadow-lg" role="img" aria-label={`Current sentiment: ${zone.sentiment}`}>
                           {isAngry ? '🤬' : zone.sentiment === 'happy' ? '🤩' : '👀'}
                         </div>
                       </div>

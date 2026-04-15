@@ -5,8 +5,30 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'VenueFlow | Next-Gen Stadium Experience',
-  description: 'Synchronizing stadiums with AI and real-time analytics.',
+  title: 'VenueFlow | The Intelligent Stadium Nervous System',
+  description: 'AI-Native stadium management mesh with real-time sentiment telemetry and life-safety orchestration. Engineered for the future of live entertainment.',
+  keywords: ['Stadium Management', 'AI', 'IoT Mesh', 'Security', 'Next.js', 'FastAPI'],
+  authors: [{ name: 'VenueFlow Engineering' }],
+  openGraph: {
+    title: 'VenueFlow | AI-Native Stadium Operations',
+    description: 'Real-time telemetry and generative AI for large-scale venue management.',
+    url: 'https://venueflow-173012947539.us-central1.run.app/',
+    siteName: 'VenueFlow',
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'VenueFlow | The Stadium Brain',
+    description: 'Transforming stadium blind spots into actionable AI intelligence.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  icons: {
+    icon: '/favicon.ico',
+  }
 };
 
 export default function RootLayout({
