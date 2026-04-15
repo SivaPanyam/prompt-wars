@@ -1,36 +1,37 @@
 <div align="center">
   
-# 🏟️ VenueFlow
-**The AI-Native Stadium Nervous System**
+# 🏟️ VenueFlow: God-Tier System
+
+**The Category of One — AI-Native Stadium Nervous System**
 
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](#)
 [![Next.js](https://img.shields.io/badge/Frontend-Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white)](#)
 [![Google Gemini](https://img.shields.io/badge/AI_Engine-Google%20Gemini-4285F4?style=for-the-badge&logo=google&logoColor=white)](#)
 [![WebSockets](https://img.shields.io/badge/IoT-WebSockets-010101?style=for-the-badge&logo=socket.io&logoColor=white)](#)
 
-*Synchronizing millions of square feet. Re-routing crowds in milliseconds. Saving lives instantly.*
+*Synchronizing millions of square feet. Overcoming congestion with absolute intelligence. Inclusively engineered for the world.*
 
 ---
 
 </div>
 
 ## 🧨 The Problem: The Stadium "Black Box"
-Modern stadiums operate blindly. Bottlenecks at gates, multi-hour wait times at concessions, and highly dangerous evacuation blind spots ruin the live entertainment experience and threaten public safety.
+Modern stadiums operate blindly. Bottlenecks at gates, multi-hour wait times at concessions, and dangerous evacuation blind spots threaten public safety and ruin the fan experience.
 
 ## 💎 The VenueFlow Solution
-VenueFlow is a bidirectional nervous system for large-scale venues. By networking stadium security cameras into a real-time **Computer Vision mesh array**, VenueFlow uses **Generative AI** to instantly re-route crowds, deploy staff, execute dynamic flash sales, and automatically manage mass evacuations without human latency.
+VenueFlow is a bidirectional nervous system for large-scale venues. It nets stadium hardware into a real-time **Computer Vision mesh array**, using **Generative AI** to re-route crowds, deploy personnel, and manage safety with zero human latency.
 
 ---
 
-## 🔥 God-Tier Features Matrix
+## 🔥 God-Tier Elevation Matrix 3.0
 
-| Feature | Technology | Impact |
+| Feature | Pillar | God-Tier Impact |
 | :--- | :--- | :--- |
-| **Multi-Camera CV Mesh 📸** | OpenCV / WebSockets | VenueFlow natively understands real pax density and crowd sentiment across millions of square feet in real-time, completely replacing guess-work. |
-| **AI "Ops Concierge" 🧠** | Google Gemini LLM | Attendees query an AI ("Where is the fastest burger?"). The AI reads the live camera mesh and issues a customized AR route instantly. |
-| **Predictive Flash Sales 💸** | AI Analytics | 10 mins before a game ends, VenueFlow dynamically pushes targeted UI alerts urging attendees to use empty exits in exchange for Uber discounts. |
-| **"Hype Squad" Dispatch 🎉** | Sentiment Analysis | If a concession line generates heavy frustration (angry sentiment), the AI automatically dispatches the mascot with free merch to that GPS coordinate. |
-| **Instant Red-Alerts 🚨** | Distributed System | In a crisis, the system executes a `< 1 second` venue-wide override. All Attendee apps lose commerce features and display pulsing emergency evacuation routes. |
+| **Investor Pitch UI** | *Aesthetics* | A premium, pitch-deck style landing page featuring an interactive **3D SVG Stadium Wireframe** that pulses with live system state. |
+| **Sentinel Pulse** | *Intelligence* | Real-time SVG telemetry tracking **Stadium Sentiment Trends** via the AI mesh, allowing for proactive "Hype Squad" dispatch. |
+| **Mesh Resync** | *Resilience* | An integrated fail-safe mechanism demonstrating IoT data integrity and rapid recovery during network fluctuations. |
+| **Universal Utility** | *Inclusivity* | Built-in **Multilingual Engine** (EN, ES, JA, FR) and **Accessibility Mode** (High Contrast) ensuring the system is helpful for *everyone*. |
+| **AI Ops Concierge** | *Agentic* | Google Gemini-powered routing assisting attendees with live wait times at snacks ("Fastest Beer") and exits ("North Gate uber credit"). |
 
 ---
 
@@ -41,19 +42,19 @@ VenueFlow is a bidirectional nervous system for large-scale venues. By networkin
 ```mermaid
 graph TD;
     %% Data Ingestion
-    CVScript[📸 Python CV Mesh Simulator] -->|Raw IoT Data| WSIngest(FastAPI WebSocket Server)
+    CVScript[📸 Python Mesh Simulator] -->|IoT Data Stream| WSIngest(FastAPI WebSocket Server)
     
     %% Core Operations
     subgraph "VenueFlow Core (Brain)"
         WSIngest --> StateManager[(In-Memory State Engine)]
-        StateManager -- Evaluates Logic --> LLMBridge[🧠 Google Gemini Bridge]
+        StateManager -- Context Extraction --> LLMBridge[🧠 Google Gemini AI]
     end
 
     %% Edge Outputs
-    subgraph "Edge / User Interfaces"
-        StateManager -. 30fps Live Sync .-> StaffDash[🖥️ React Operations Command Center]
-        LLMBridge -. Personalized Routing .-> AttendeeApp[📱 Next.js Attendee App]
-        StateManager -. Red Alerts .-> AttendeeApp
+    subgraph "God-Tier Interfaces"
+        StateManager -. 2Hz Telemetry .-> StaffDash[🖥️ Sentinel Command Dashboard]
+        LLMBridge -. Agentic Intelligence .-> AttendeeApp[📱 Universal Attendee App]
+        StateManager -. Red Alert Overrides .-> AttendeeApp
     end
 ```
 
@@ -61,39 +62,44 @@ graph TD;
 
 ---
 
-## 🚀 Presentation Guide (Running Locally)
+## 🚀 Presentation Guide (Live Demo)
 
-For Hakathon Judges and Evaluators: This repository contains everything needed for the end-to-end demo.
+This repository contains the full "Category of One" suite. Follow these steps to execute a winning pitch.
 
-### 1. Boot the AI Engine (Terminal 1)
+### 1. Unified Backend (Terminal 1)
 ```bash
 cd venueflow-backend
 python -m venv venv
-# Activate the venv (env\Scripts\activate on Windows)
+# Activate venv: .\venv\Scripts\activate (Windows) or source venv/bin/activate (UNIX)
 pip install -r requirements.txt
-uvicorn main:app --host 0.0.0.0 --port 8000
+python main.py
 ```
 
-### 2. Boot the Edge Displays (Terminal 2)
+### 2. Premium Frontend (Terminal 2)
 ```bash
 cd venueflow-frontend
 npm install
 npm run dev
-# Open http://localhost:3000 to view the Operations Portal
+# Dashboard: http://localhost:3000/dashboard
+# Attendee App: http://localhost:3000/attendee
 ```
 
-### 3. Initiate the "God-Mode" CV Simulator (Terminal 3)
+### 3. The "God-Mode" Simulator (Terminal 3)
 ```bash
 cd venueflow-backend
 python cv_simulator.py
 ```
 
-> **✨ MAGIC TRICK:** Once `cv_simulator.py` is running, use your keyboard's **Number Pad (1-4)** in that terminal to act as "God" during the pitch. You can manually trigger massive AI re-routing events, emergency screen-overrides, and Mascot dispatches that actively manipulate the frontend interfaces live in front of the judges!
+> **✨ JUDGE'S WOW-MOMENT:** While `cv_simulator.py` is running, use **Number Keys (1-4)** to trigger live overrides:
+> - **1**: Evacuation Mode (AR routings appear instantly on Attendee App).
+> - **2**: Post-Game Mode (Uber discounts & exit optimization).
+> - **3**: Sentiment Alert (Angry crowd detected -> Staff Dispatch visible on Dashboard).
+> - **4**: Normal Mode (Restore nominal operations).
 
 ---
 
 <div align="center">
 
-*Engineered with precision for the Hackathon Finals.* 🏆
+*Engineered with precision. Designed for the win.* 🏆
 
 </div>
