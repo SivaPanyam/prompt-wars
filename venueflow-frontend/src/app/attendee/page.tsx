@@ -1,179 +1,287 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Send, 
+  Map as MapIcon, 
+  Clock, 
+  Beer, 
+  Navigation, 
+  User, 
+  Sparkles, 
+  AlertCircle,
+  ShieldCheck,
+  ChevronUp,
+  Globe,
+  Eye,
+  Activity
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+// Simulated translation dictionary
+const TRANSLATIONS: any = {
+  EN: { welcome: "Hello, Alex.", prompt: "Ask me anything...", island: "VENUEFLOW LIVE", safety: "Safety Score: Optimal" },
+  ES: { welcome: "Hola, Alex.", prompt: "Pregúntame lo que sea...", island: "VENUEFLOW EN VIVO", safety: "Seguridad: Óptima" },
+  JA: { welcome: "こんにちは、アレックス。", prompt: "何でも聞いてください...", island: "ライブ・ビュー", safety: "安全スコア：最適" },
+  FR: { welcome: "Bonjour, Alex.", prompt: "Demandez-moi n'importe quoi...", island: "VENUEFLOW EN DIRECT", safety: "Score de sécurité : Optimal" }
+};
 
 export default function AttendeeApp() {
-  const [dbState, setDbState] = useState({
-    global_status: "NORMAL",
-    total_attendance: 68241,
-    gates: {},
-    alerts: []
-  });
+  const [messages, setMessages] = useState<any[]>([]);
+  const [input, setInput] = useState("");
+  const [lang, setLang] = useState("EN");
+  const [highContrast, setHighContrast] = useState(false);
+  const [status, setStatus] = useState({ state: "NORMAL", msg: "", eta: "" });
+  const [isIslandExpanded, setIsIslandExpanded] = useState(false);
+  const chatEndRef = useRef<null | HTMLDivElement>(null);
 
-  const [conciergeMsg, setConciergeMsg] = useState("");
-  const [conciergeInput, setConciergeInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
+  const t = TRANSLATIONS[lang];
 
   useEffect(() => {
-    const ws = new WebSocket("ws://localhost:8000/ws");
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws";
+    const ws = new WebSocket(wsUrl);
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data) setDbState(data);
-      } catch (e) {
-        console.error("Failed to parse websocket message", e);
-      }
+        if (data.global_status !== status.state) {
+          setStatus({ state: data.global_status, msg: data.alerts?.[0]?.msg || "", eta: "" });
+          if (data.global_status === "EMERGENCY") setIsIslandExpanded(true);
+        }
+      } catch (e) {}
     };
     return () => ws.close();
-  }, []);
+  }, [status.state]);
 
-  const handleConciergeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!conciergeInput.trim()) return;
-    
-    setIsTyping(true);
-    const query = conciergeInput;
-    setConciergeInput("");
-    
+  const handleSend = async () => {
+    if (!input.trim()) return;
+    const userMsg = { role: "user", text: input };
+    setMessages(prev => [...prev, userMsg]);
+    setInput("");
+
     try {
-      const res = await fetch("http://localhost:8000/api/concierge", {
+      const response = await fetch("http://localhost:8000/api/concierge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: query, location: "Sec 142" })
+        body: JSON.stringify({ query: input, location: "Sec 142" })
       });
-      const data = await res.json();
-      setConciergeMsg(data.reply);
-    } catch(err) {
-      setConciergeMsg("Sorry, I'm having trouble connecting to the network right now.");
+      const data = await response.json();
+      setMessages(prev => [...prev, { role: "ai", text: data.reply }]);
+    } catch (e) {
+      setMessages(prev => [...prev, { role: "ai", text: "I'm having trouble connecting to the stadium network. Please follow physical signage." }]);
     }
-    setIsTyping(false);
   };
 
-  const { global_status, alerts } = dbState;
-  const isEmergency = global_status === "EMERGENCY";
-  const latestAlert = alerts.length > 0 ? alerts[0] : null;
-
-  if (isEmergency) {
-    return (
-      <div className="w-full flex items-center justify-center pt-8 animate-fade-in bg-black">
-        <div className="max-w-sm w-full bg-red-600 rounded-[3rem] border-[6px] border-red-800 shadow-2xl shadow-red-500/50 overflow-hidden relative h-[800px] flex flex-col justify-center items-center text-center p-8 animate-pulse duration-1000">
-           <div className="text-6xl mb-4">🚨</div>
-           <h1 className="text-3xl font-black text-white tracking-widest uppercase mb-4">Evacuate Now</h1>
-           <p className="text-white/90 font-medium mb-8">
-             Medical anomaly detected near Section 142. Please proceed calmly to the North Exit immediately. All concessions are closed.
-           </p>
-           <div className="bg-red-900/50 border-4 border-white/20 rounded-xl w-full h-48 flex items-center justify-center">
-             <span className="text-white/50 text-sm font-bold">[ Interactive AR Map Placeholder ]<br/>Routing to North Exit...</span>
-           </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Normal / Post-Game States
   return (
-    <div className="w-full flex items-center justify-center pt-8 animate-fade-in">
-      <div className="max-w-sm w-full bg-[#12141a] rounded-[3rem] border-[6px] border-white/10 shadow-2xl overflow-hidden relative">
-        {/* Dynamic Island Simulation */}
-        <div className="absolute top-0 inset-x-0 h-7 flex justify-center z-50">
-          <div className="w-32 h-6 bg-black rounded-b-2xl"></div>
+    <div className={cn(
+      "min-h-screen transition-colors duration-500 flex justify-center items-center p-4",
+      highContrast ? "bg-black" : "bg-neutral-950",
+      status.state === "EMERGENCY" && !highContrast ? "bg-red-950/20" : ""
+    )}>
+      
+      {/* Phone Frame Mockup */}
+      <div className={cn(
+        "w-full max-w-[420px] h-[850px] rounded-[3.5rem] relative overflow-hidden flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.8)] border-8",
+        highContrast ? "border-white" : "border-neutral-900 bg-[#0a0a0b]"
+      )}>
+        
+        {/* Notch / Dynamic Island */}
+        <div className="absolute top-0 inset-x-0 h-10 z-50 flex justify-center pt-2">
+            <motion.div 
+              layout
+              onClick={() => setIsIslandExpanded(!isIslandExpanded)}
+              className={cn(
+                "bg-black rounded-full flex items-center justify-center cursor-pointer overflow-hidden border border-white/5",
+                isIslandExpanded ? "w-[90%] h-32 mt-2" : "w-32 h-8"
+              )}
+            >
+              <AnimatePresence mode="wait">
+                {!isIslandExpanded ? (
+                  <motion.div 
+                    key="closed"
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="flex items-center gap-2"
+                  >
+                    <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse" />
+                    <span className="text-[8px] font-black text-white/40 tracking-widest">{t.island}</span>
+                  </motion.div>
+                ) : (
+                  <motion.div 
+                    key="open"
+                    initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+                    className="p-4 w-full flex items-center gap-4"
+                  >
+                    <div className="p-3 bg-white/5 rounded-2xl">
+                      <ShieldCheck size={28} className={status.state === "EMERGENCY" ? "text-red-500" : "text-cyan-400"} />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black tracking-widest text-white/30 uppercase">{t.safety}</h4>
+                      <p className="text-sm font-bold text-white leading-tight">
+                        {status.state === "EMERGENCY" ? "Emergency protocols active. Follow red routing." : "Stadium network health at 100% stable."}
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
         </div>
 
-        <div className="h-[800px] overflow-y-auto pt-10 pb-20 relative bg-gradient-to-b from-[#12141a] to-[#0a0c10]">
+        {/* Content Area */}
+        <div className="flex-grow flex flex-col px-6 pt-16 pb-8 overflow-y-auto overflow-x-hidden custom-scrollbar">
           
-          <div className="px-6 flex justify-between items-center mb-6">
-            <div>
-              <p className="text-white/50 text-sm font-medium">Sat, Nov 12 • Section 142</p>
-              <h1 className="text-2xl font-bold text-white mt-1">Hello, Alex</h1>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 shadow-lg shadow-cyan-500/20" />
-          </div>
-
-          <div className="px-6">  
-            {/* AI Concierge Chat Interface */}
-            <div className="bg-gradient-to-tr from-blue-900/40 to-purple-900/40 border border-blue-500/30 rounded-2xl p-4 mb-6 relative overflow-hidden backdrop-blur-xl">
-               <div className="flex items-center gap-2 mb-3 border-b border-white/10 pb-2">
-                 <span className="text-xl">✨</span>
-                 <h2 className="text-sm font-bold text-white">Ask VenueFlow AI</h2>
-               </div>
-               
-               {conciergeMsg && (
-                 <div className="bg-black/40 rounded-xl p-3 mb-3 border border-white/5 animate-fade-in">
-                   <p className="text-sm text-blue-100/90 leading-relaxed">{conciergeMsg}</p>
-                 </div>
+          {/* Header Controls */}
+          <div className="flex justify-between items-center mb-10">
+             <div className="flex gap-2">
+                {["EN", "ES", "JA"].map(l => (
+                  <button 
+                    key={l}
+                    onClick={() => setLang(l)}
+                    className={cn(
+                      "w-8 h-8 rounded-full text-[10px] font-black border transition-all",
+                      lang === l ? "bg-cyan-500 border-cyan-400 text-black scale-110" : "bg-white/5 border-white/10 text-white/40"
+                    )}
+                  >
+                    {l}
+                  </button>
+                ))}
+             </div>
+             <button 
+               onClick={() => setHighContrast(!highContrast)}
+               className={cn(
+                 "p-2 rounded-xl border transition-all",
+                 highContrast ? "bg-white text-black" : "bg-white/5 text-white/40 border-white/10"
                )}
-               
-               <form onSubmit={handleConciergeSubmit} className="relative">
-                 <input 
-                   type="text" 
-                   value={conciergeInput}
-                   onChange={e => setConciergeInput(e.target.value)}
-                   disabled={isTyping}
-                   placeholder="e.g. Where is the shortest bathroom line?"
-                   className="w-full bg-black/50 border border-white/10 rounded-xl py-2.5 px-3 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-blue-500/50 transition-colors"
-                 />
-                 <button type="submit" disabled={isTyping} className="absolute right-1 top-1 w-7 h-7 bg-blue-500 hover:bg-blue-600 rounded-lg flex items-center justify-center transition-colors">
-                   {isTyping ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <span className="text-white text-[10px]">➤</span>}
-                 </button>
-               </form>
-               <div className="flex gap-2 mt-3 overflow-x-auto pb-1 no-scrollbar">
-                 <button onClick={() => setConciergeInput("Find food fastest route")} className="whitespace-nowrap bg-white/5 hover:bg-white/10 border border-white/10 rounded-full px-3 py-1 text-[10px] text-white/70 transition-colors">🍔 Fastest Food</button>
-                 <button onClick={() => setConciergeInput("Find restroom near me")} className="whitespace-nowrap bg-white/5 hover:bg-white/10 border border-white/10 rounded-full px-3 py-1 text-[10px] text-white/70 transition-colors">🚻 Find Restrooms</button>
+             >
+               <Eye size={18} />
+             </button>
+          </div>
+
+          <div className="mb-8 space-y-1">
+            <p className="text-xs font-bold text-white/30 uppercase tracking-[0.2em]">November 12 • Sec 142</p>
+            <h1 className="text-4xl font-black tracking-tighter flex items-center gap-2 italic">
+              {t.welcome} <Sparkles size={24} className="text-cyan-400" />
+            </h1>
+          </div>
+
+          {/* AI Concierge Box */}
+          <div className={cn(
+            "p-6 rounded-[2.5rem] border mb-8 transition-colors",
+            highContrast ? "bg-black border-white" : "bg-white/5 border-white/10"
+          )}>
+             <div className="flex items-center gap-2 mb-4">
+                <div className="p-1.5 bg-cyan-500/10 rounded-lg">
+                  <Activity size={16} className="text-cyan-400" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-cyan-500/60">Live Edge Assistant</span>
+             </div>
+             
+             <div className="space-y-4 mb-6 max-h-[180px] overflow-y-auto custom-scrollbar pr-2">
+                {messages.length === 0 ? (
+                  <p className="text-white/40 italic font-medium leading-relaxed">
+                    "Looking for the fastest route to Gate B? Or need a refreshment update? Ask me anything."
+                  </p>
+                ) : messages.map((m, i) => (
+                  <div key={i} className={cn("flex", m.role === 'user' ? "justify-end" : "justify-start")}>
+                    <p className={cn(
+                      "max-w-[80%] px-4 py-2 rounded-2xl text-sm font-medium",
+                      m.role === 'user' ? "bg-cyan-500 text-black font-bold" : "bg-white/10 text-white"
+                    )}>
+                      {m.text}
+                    </p>
+                  </div>
+                ))}
+                <div ref={chatEndRef} />
+             </div>
+
+             <div className="relative">
+                <input 
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyPress={e => e.key === 'Enter' && handleSend()}
+                  placeholder={t.prompt}
+                  className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-cyan-500/50 transition-colors"
+                />
+                <button 
+                  onClick={handleSend}
+                  className="absolute right-2 top-2 p-2 bg-cyan-500 text-black rounded-xl hover:scale-105 transition-transform"
+                >
+                  <Send size={18} />
+                </button>
+             </div>
+          </div>
+
+          {/* AR MiniMap / Wayfinding */}
+          <div className={cn(
+            "p-6 rounded-[2.5rem] border flex-grow flex flex-col",
+            highContrast ? "bg-black border-white" : "bg-white/[0.03] border-white/5 shadow-inner"
+          )}>
+            <div className="flex justify-between items-center mb-6">
+               <h3 className="text-xs font-black uppercase tracking-widest text-white/30">Live Wayfinding</h3>
+               <div className="flex items-center gap-1 text-[10px] font-black text-cyan-400">
+                  <Navigation size={12} fill="currentColor" /> ACTIVE
                </div>
             </div>
 
-            {/* Predictive Push Banner */}
-            {global_status === "POST_GAME" && (
-                <div className="bg-gradient-to-r from-orange-600 to-amber-500 rounded-2xl p-4 mb-6 shadow-lg shadow-orange-500/20 animate-bounce">
-                  <h3 className="font-black text-white text-sm uppercase tracking-wide">Beat the Rush</h3>
-                  <p className="text-white/90 text-xs mt-1">The South Exit will be jammed in 10 mins. Walk to the North Exit now and get a 50% discount on an Uber.</p>
-                </div>
-            )}
-            
-            {/* Mascot Hype Push Banner */}
-            {latestAlert && latestAlert.title.includes("Sentiment") && (
-                <div className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-2xl p-4 mb-6 shadow-lg shadow-pink-500/20 animate-fade-in">
-                  <h3 className="font-black text-white text-sm uppercase tracking-wide">Surprise Incoming! 🎉</h3>
-                  <p className="text-white/90 text-xs mt-1">We see the lines are long near you. Hold tight, the Mascot is bringing free merch your way!</p>
-                </div>
-            )}
+            <div className="relative flex-grow bg-black/40 rounded-3xl overflow-hidden border border-white/5">
+               <svg viewBox="0 0 200 200" className="w-full h-full p-8 transition-transform group-hover:scale-105 duration-700">
+                  <path d="M40,40 L160,40 L180,100 L160,160 L40,160 L20,100 Z" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
+                  
+                  {/* Current Position */}
+                  <circle cx="100" cy="140" r="4" fill="#06b6d4" className="animate-pulse" />
+                  <circle cx="100" cy="140" r="10" stroke="#06b6d4" strokeWidth="1" fill="none" className="animate-ping" />
 
-            {/* Tickets Section */}
-            <h2 className="text-lg font-bold text-white mb-3">Your Event</h2>
-            <div className="bg-white rounded-3xl p-5 shadow-xl">
-              <div className="flex justify-between items-center border-b border-black/10 pb-4 mb-4">
-                <div>
-                  <p className="text-black/50 text-[10px] font-bold uppercase tracking-wider">Gate Entrance</p>
-                  <p className="text-black font-bold text-lg">VIP South</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-black/50 text-[10px] font-bold uppercase tracking-wider">Row • Seat</p>
-                  <p className="text-black font-bold text-lg">12 • 4A</p>
-                </div>
-              </div>
-              <div className="flex justify-center flex-col items-center">
-                <div className="w-full h-12 bg-black/5 rounded flex items-center justify-center space-x-1 opacity-60">
-                   {[...Array(24)].map((_, i) => <div key={i} className={`h-8 bg-black ${i % 3 === 0 ? 'w-2' : 'w-1'}`}></div>)}
-                </div>
-              </div>
+                  {/* Dynamic Route Line */}
+                  <motion.path 
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    d={status.state === "EMERGENCY" ? "M100,140 L100,80 L40,40" : "M100,140 L140,100 L140,50"}
+                    fill="none" 
+                    stroke={status.state === "EMERGENCY" ? "#ef4444" : "#06b6d4"} 
+                    strokeWidth="3" 
+                    strokeDasharray="8 4"
+                  />
+               </svg>
+
+               <div className="absolute bottom-4 inset-x-4 flex justify-between">
+                  <div className="bg-black/60 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10 flex items-center gap-2">
+                     <Clock size={12} className="text-cyan-400" />
+                     <span className="text-[10px] font-black">{status.state === "EMERGENCY" ? "2m to Exit" : "5m to Entry"}</span>
+                  </div>
+               </div>
             </div>
           </div>
+
         </div>
 
-        {/* Fake iOS Bottom Navigation */}
-        <div className="absolute bottom-0 inset-x-0 h-16 bg-black/90 backdrop-blur-xl border-t border-white/10 flex justify-around items-center px-4 pb-2 z-50">
-          <div className="flex flex-col items-center gap-1 cursor-pointer">
-            <span className="text-[10px] text-white/50 font-medium">Home</span>
-          </div>
-          <div className="flex flex-col items-center gap-1 cursor-pointer">
-            <span className="text-[10px] text-white/50 font-medium">Map AR</span>
-          </div>
-          <div className="flex flex-col items-center gap-1 cursor-pointer">
-            <span className="text-[10px] text-white/50 font-medium">Order</span>
-          </div>
+        {/* Global Nav Bar */}
+        <div className={cn(
+          "h-20 border-t flex justify-around items-center px-4",
+          highContrast ? "bg-black border-white" : "bg-neutral-900 border-white/5"
+        )}>
+           <button className="text-cyan-500 flex flex-col items-center gap-1">
+              <Sparkles size={20} />
+              <span className="text-[8px] font-black uppercase tracking-widest">Guide</span>
+           </button>
+           <button className="text-white/20 hover:text-white transition-colors flex flex-col items-center gap-1">
+              <Beer size={20} />
+              <span className="text-[8px] font-black uppercase tracking-widest">Orders</span>
+           </button>
+           <button className="text-white/20 hover:text-white transition-colors flex flex-col items-center gap-1">
+              <MapIcon size={20} />
+              <span className="text-[8px] font-black uppercase tracking-widest">Map</span>
+           </button>
+           <button className="text-white/20 hover:text-white transition-colors flex flex-col items-center gap-1">
+              <User size={20} />
+              <span className="text-[8px] font-black uppercase tracking-widest">Pass</span>
+           </button>
         </div>
 
       </div>
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 0px; }
+      `}</style>
     </div>
   );
 }

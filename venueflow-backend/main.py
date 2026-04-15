@@ -5,7 +5,13 @@ import asyncio
 import json
 import logging
 import random
+import os
 from typing import List
+from dotenv import load_dotenv
+import google.generativeai as genai
+
+# Load environment variables
+load_dotenv()
 
 app = FastAPI()
 
@@ -16,6 +22,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Gemini Configuration
+API_KEY = os.getenv("GOOGLE_API_KEY")
+if API_KEY:
+    try:
+        genai.configure(api_key=API_KEY)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        HAS_GEMINI = True
+    except Exception:
+        HAS_GEMINI = False
+else:
+    HAS_GEMINI = False
 
 class ConnectionManager:
     def __init__(self):
@@ -30,17 +48,17 @@ class ConnectionManager:
             self.active_connections.remove(websocket)
 
     async def broadcast(self, message: str):
-        for connection in self.active_connections:
+        for connection in list(self.active_connections):
             try:
                 await connection.send_text(message)
-            except Exception as e:
-                logging.error(f"Error broadcasting: {e}")
+            except Exception:
+                self.disconnect(connection)
 
 manager = ConnectionManager()
 
 # Multi-Camera Mesh State
 stadium_state = {
-    "global_status": "NORMAL", # NORMAL, EMERGENCY, POST_GAME
+    "global_status": "NORMAL",
     "total_attendance": 68241,
     "zones": [
         {"id": "gate_n", "name": "North Gate", "density": 20, "sentiment": "neutral", "wait_time": "2m"},
@@ -63,92 +81,67 @@ async def websocket_endpoint(websocket: WebSocket):
             data = await websocket.receive_text()
             payload = json.loads(data)
             
-            # Allow simulator to push entire state updates or specific overrides
             if payload.get("type") == "mesh_update":
                 stadium_state["zones"] = payload.get("zones", stadium_state["zones"])
-                
-                # Check for automatic alerts based on new mesh data
                 for zone in stadium_state["zones"]:
-                    # Hype Squad triggers on 'angry' sentiment
                     if zone.get("sentiment") == "angry" and stadium_state["global_status"] == "NORMAL":
                         alert = {
-                            "title": "Sentiment Alert (Gemini)",
-                            "msg": f"Negative sentiment detected at {zone['name']} due to overcrowding ({zone['density']} pax). Dispatching Hype Squad and T-Shirt Cannon to diffuse wait time friction.",
+                            "title": "Sentiment Alert",
+                            "msg": f"Negative sentiment at {zone['name']}. Dispatching Hype Squad.",
                             "severity": "medium",
                             "time": "Live"
                         }
-                        if len(stadium_state["alerts"]) == 0 or stadium_state["alerts"][0]["title"] != "Sentiment Alert (Gemini)":
+                        if not any(a["title"] == "Sentiment Alert" for a in stadium_state["alerts"][:2]):
                             stadium_state["alerts"].insert(0, alert)
-                            
                 stadium_state["alerts"] = stadium_state["alerts"][:5]
                 await manager.broadcast(json.dumps(stadium_state))
             
             elif payload.get("type") == "global_override":
                 stadium_state["global_status"] = payload.get("status", "NORMAL")
-                
                 if stadium_state["global_status"] == "EMERGENCY":
-                    stadium_state["alerts"].insert(0, {
-                        "title": "CRITICAL EMERGENCY",
-                        "msg": "Medical anomaly detected in Sector 142. Executing venue-wide AR evacuation protocols.",
-                        "severity": "high",
-                        "time": "Live"
-                    })
-                elif stadium_state["global_status"] == "POST_GAME":
-                    stadium_state["alerts"].insert(0, {
-                        "title": "Predictive AI: Post-Game",
-                        "msg": "Match ending in 10 mins. South Gate predict 45m delay. Executing crowd-smoothing flash sales on Attendee App.",
-                        "severity": "medium",
-                        "time": "Live"
-                    })
-                
+                    stadium_state["alerts"].insert(0, {"title": "RED ALERT", "msg": "Sector 142 Hazard. Evacuation Active.", "severity": "high", "time": "Live"})
                 stadium_state["alerts"] = stadium_state["alerts"][:5]
                 await manager.broadcast(json.dumps(stadium_state))
-
-    except WebSocketDisconnect:
+    except Exception:
+        pass
+    finally:
         manager.disconnect(websocket)
+
+# --- God-Tier AI ---
+class ConciergeAI:
+    def __init__(self, model, enabled):
+        self.model = model
+        self.enabled = enabled
+        self.system_prompt = "You are VenueFlow Core. Provide safety and convenience info based on live mesh data. Respond in JSON: {'reply': '...'}"
+
+    async def get_response(self, query: str, state: dict):
+        if self.enabled:
+            try:
+                full_prompt = f"{self.system_prompt}\n\nDATA: {json.dumps(state)}\nQUERY: {query}"
+                response = self.model.generate_content(full_prompt)
+                return json.loads(response.text.replace('```json', '').replace('```', '').strip())
+            except Exception: pass
+        return self.simulate(query, state)
+
+    def simulate(self, query: str, state: dict):
+        q = query.lower()
+        if state["global_status"] == "EMERGENCY":
+            return {"reply": "⚠️ CRITICAL: Follow red route to NORTH GATE."}
+        if "beer" in q or "food" in q:
+            return {"reply": "🍻 Cafe 142 is clear. VIP Lounge is empty."}
+        return {"reply": "VenueFlow Core active. Mesh nominal."}
+
+concierge = ConciergeAI(model if HAS_GEMINI else None, HAS_GEMINI)
 
 class ConciergeRequest(BaseModel):
     query: str
     location: str
 
 @app.post("/api/concierge")
-async def ai_concierge(req: ConciergeRequest):
-    """
-    Acts as the Gemini API proxy. In a real environment, you'd pass stadium_state + req.query to google-genai. 
-    Here, we use smart parsing to ensure the demo is instantaneous and flawless.
-    """
-    query = req.query.lower()
-    
-    # Analyze live state to give accurate responses 
-    # (e.g. If cafe_142 is crowded, tell them to go to VIP or Cafe 110)
-    cafe_142 = next(z for z in stadium_state["zones"] if z["id"] == "cafe_142")
-    
-    response_msg = "I can guide you! Are you looking for food, restrooms, or exits?"
-    
-    if "food" in query or "burger" in query or "hungry" in query:
-        if cafe_142["density"] > 30:
-            response_msg = f"Sec 142 Cafe near you is very busy right now (wait: {cafe_142['wait_time']}). I recommend the VIP Lounge which has a 0m wait right now. I've sent an AR route to your screen."
-        else:
-            response_msg = f"You're in luck! Sec 142 Cafe right next to you has only a {cafe_142['wait_time']} wait. I've sent the mobile-order menu to your screen."
-            
-    elif "bathroom" in query or "restroom" in query:
-        response_msg = "The Sec 144 Baths are right around the corner with a 2m wait. I'll highlight the path for you."
-    
-    elif "emergency" in query or "help" in query:
-        response_msg = "I am flagging your location for Security and Medical dispatch. Please stay calm, help is inbound."
-
-    elif "leave" in query or "exit" in query or "home" in query:
-        south_gate = next(z for z in stadium_state["zones"] if z["id"] == "gate_s")
-        if south_gate["density"] > 40:
-             response_msg = "The South Gate is heavily congested right now. Head towards the North Gate for an immediate exit and a 20% Uber discount!"
-        else:
-             response_msg = "The South Gate is clear! Have a safe trip home."
-
-    return {
-        "reply": response_msg,
-        "action": "ROUTE_DRAWN"
-    }
+async def ai_endpoint(req: ConciergeRequest):
+    return await concierge.get_response(req.query, stadium_state)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
